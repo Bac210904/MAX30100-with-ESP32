@@ -1,6 +1,6 @@
 #include <Wire.h>
 #include <MAX30100_PulseOximeter.h> // Đảm bảo bạn đã cài đặt thư viện này
-#include <esp32-hal.h>             // Cần cho disableCore0WDT() và enableCore0WDT()
+#include <esp32-hal.h>   
 #include <Adafruit_GFX.h>          // Thư viện đồ họa cho OLED
 #include <Adafruit_SSD1306.h>      // Thư viện điều khiển OLED SSD1306
 
@@ -25,15 +25,15 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET); // Đ�
 #define buzzer 25 // Chân GPIO kết nối với còi báo
 
 // --- Biến toàn cục để điều khiển trạng thái ---
-uint32_t tLastReport = 0;           // Thời gian báo cáo cuối cùng
+uint32_t tLastReport = 0;           
 bool beatShown = false;             // Cờ báo hiệu nhịp đập đã được hiển thị/báo còi
-unsigned long beatTime = 0;         // Thời điểm phát hiện nhịp đập
+unsigned long beatTime = 0;       
 const unsigned long beatDuration = 100; // Thời gian còi kêu khi phát hiện nhịp (ms)
-bool isBeeping = false;             // Cờ báo hiệu còi đang kêu
+bool isBeeping = false;            
 
 // Biến kiểm tra ánh sáng mạnh
 bool brightLightDetected = false;       // Cờ báo hiệu có khả năng nhiễu ánh sáng mạnh
-unsigned long brightLightStartTime = 0; // Thời điểm bắt đầu phát hiện nhiễu ánh sáng
+unsigned long brightLightStartTime = 0; 
 const unsigned long brightLightTimeout = 3000; // Thời gian tối đa cho phép nhiễu trước khi báo lỗi (3 giây)
 
 // --- Hàm scan I2C (Hữu ích để debug kết nối) ---
@@ -58,7 +58,6 @@ void scanI2C() {
   if (nDevices == 0) Serial.println("No I2C devices found!");
   else Serial.println("Scan completed.");
 }
-
 // --- Hàm gọi lại khi phát hiện nhịp đập ---
 void onBeatDetected() {
   beatShown = true;
@@ -66,17 +65,13 @@ void onBeatDetected() {
   beatTime = millis();
   isBeeping = true;
 }
-
 //Hàm kiểm tra độ tin cậy của dữ liệu
 bool isDataReliable(float heartRate, float spO2) {
-  // Kiểm tra giá trị nhịp tim ngoài phạm vi hợp lý
   if (heartRate < MIN_RELIABLE_HR || heartRate > MAX_RELIABLE_HR) return false;
-  // Kiểm tra giá trị SpO2 ngoài phạm vi hợp lý
   if (spO2 < MIN_RELIABLE_SPO2) return false; 
   // Nếu cả hai đều trong phạm vi thì dữ liệu đáng tin cậy
   return true;
 }
-
 // Hàm kiểm tra ánh sáng mạnh
 void checkBrightLight(float heartRate, float spO2) {
   if ((heartRate > 0 || spO2 > 0) && !isDataReliable(heartRate, spO2)) {
@@ -101,14 +96,12 @@ void checkBrightLight(float heartRate, float spO2) {
 // --- Hàm Setup (Chạy một lần khi khởi động) ---
 void setup() {
   Serial.begin(115200); // Khởi tạo Serial Monitor
-  while (!Serial) delay(100); // Đợi Serial sẵn sàng (đặc biệt hữu ích với ESP32)
-
+  while (!Serial) delay(100);
   // Khởi tạo giao tiếp I2C cho ESP32
   Wire.begin(SDA_PIN, SCL_PIN);
-  Wire.setClock(400000); // Tăng tốc độ I2C lên 400kHz để truyền dữ liệu nhanh hơn
-  scanI2C(); // Thực hiện quét I2C để kiểm tra thiết bị
-
-  pinMode(buzzer, OUTPUT); // Cấu hình chân còi là Output
+  Wire.setClock(400000); 
+  scanI2C();
+  pinMode(buzzer, OUTPUT);
 
   // --- Khởi tạo màn hình OLED
   if (!display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDRESS)) {
@@ -118,11 +111,11 @@ void setup() {
       Serial.println("OLED error, check hardware connections and address!");
     }
   }
-  display.clearDisplay(); // Xóa màn hình
-  display.setTextSize(1); // Cỡ chữ nhỏ
+  display.clearDisplay();
+  display.setTextSize(1); // Cỡ chữ 
   display.setTextColor(SSD1306_WHITE);
-  display.setCursor(0, 0); // Đặt con trỏ về góc trên bên trái
-  display.println(F("Initializing...")); // Hiển thị thông báo khởi tạo
+  display.setCursor(0, 0); 
+  display.println(F("Initializing...")); 
   display.display(); // Hiển thị nội dung lên màn hình
   disableCore0WDT(); 
   if (!pox.begin()) { // Khởi tạo cảm biến
@@ -131,14 +124,13 @@ void setup() {
     display.setCursor(0, 0);
     display.println(F("MAX30100 ERROR!"));
     display.display();
-    while (1) { // Lặp vô hạn nếu có lỗi cảm biến
+    while (1) {
       delay(500);
       Serial.println("MAX30100 error, check sensor connections!");
     }
   }
   enableCore0WDT();
-  pox.setIRLedCurrent(MAX30100_LED_CURR_24MA); 
-  // Đăng ký hàm callback khi phát hiện nhịp đập
+  pox.setIRLedCurrent(MAX30100_LED_CURR_24MA);// Dòng điện của LED là 24mA
   pox.setOnBeatDetectedCallback(onBeatDetected);
 
   display.clearDisplay();
@@ -149,11 +141,11 @@ void setup() {
 }
 
 void loop() {
-  pox.update(); // Cập nhật dữ liệu từ cảm biến (quan trọng!)
+  pox.update(); // Cập nhật dữ liệu từ cảm biến
 
   if (isBeeping && (millis() - beatTime > beatDuration)) {
-    noTone(buzzer); // Tắt âm thanh còi
-    isBeeping = false; // Reset cờ
+    noTone(buzzer);
+    isBeeping = false;
   }
   if ((millis() - tLastReport) > REPORTING_PERIOD_MS) {
     tLastReport = millis(); // Cập nhật thời điểm báo cáo cuối cùng
@@ -185,9 +177,9 @@ void loop() {
       display.println(F("Heart Rate Monitor"));
       display.setTextSize(2); // Cỡ chữ lớn hơn cho số
       display.setCursor(0, 16); // Đặt con trỏ ở hàng thứ hai
-      display.print(heartRate, 0); // Hiển thị nhịp tim (làm tròn)
+      display.print(heartRate, 0); // Hiển thị nhịp tim
       display.println(F(" bpm"));
-      display.print(spO2, 0); // Hiển thị SpO2 (làm tròn)
+      display.print(spO2, 0); // Hiển thị SpO2
       display.println(F(" % SpO2"));
     } else {
       // Nếu không có ngón tay hoặc dữ liệu không hợp lệ, hiển thị hướng dẫn
